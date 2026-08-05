@@ -39,7 +39,7 @@ class AuthController extends Controller
             // 4. Redirect ke dashboard dengan pesan selamat datang
             $user = Auth::user();
             $roleName = $user->role === 'admin' ? 'Admin' : 'Barista';
-            
+
             return redirect()->intended('/dashboard')
                 ->with('success', 'Selamat datang, ' . $user->name . '! Anda login sebagai ' . $roleName . '.');
         }

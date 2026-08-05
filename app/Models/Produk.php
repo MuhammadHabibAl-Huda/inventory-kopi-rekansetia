@@ -15,7 +15,7 @@ class Produk extends Model
     public function bahanBakus()
     {
         return $this->belongsToMany(BahanBaku::class, 'reseps')
-                    ->withPivot('jumlah_dibutuhkan')
+                    ->withPivot('id', 'jumlah_dibutuhkan')
                     ->withTimestamps();
     }
 }

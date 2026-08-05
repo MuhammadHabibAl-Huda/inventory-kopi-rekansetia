@@ -3,8 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\BahanBakuController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\RiwayatController;
+use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\UserController;
 
 // ===== RUTE PUBLIK =====
 // Arahkan root ke halaman login
@@ -12,28 +15,46 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
-// Tampilkan form login
+// Auth Route
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-// Proses form login
 Route::post('/login', [AuthController::class, 'login'])->name('login.process');
-// Proses logout
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// ===== RUTE YANG DILINDUNGI (harus login dulu) =====
+
+// ===== RUTE YANG DILINDUNGI (Harus Login) =====
 Route::middleware('auth')->group(function () {
-    // Dashboard utama (semua role)
-    Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // ===== RUTE KHUSUS ADMIN =====
-    // Input bahan baku (restock dari supplier)
-    Route::post('/dashboard/restock', [DashboardController::class, 'restock']);
+    // 1. Halaman Live Monitoring / Dashboard Utama
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Pencatatan penyusutan stok (bahan rusak/tumpah/terbuang)
-    Route::post('/dashboard/penyusutan', [DashboardController::class, 'penyusutan'])->name('dashboard.penyusutan');
+    // 2. Modul Kelola Bahan Baku (Restock & Penyusutan)
+    Route::get('/bahan-baku', [BahanBakuController::class, 'index'])->name('bahan-baku.index');
+    Route::post('/bahan-baku/restock', [BahanBakuController::class, 'restock'])->name('bahan-baku.restock');
+    Route::post('/bahan-baku/penyusutan', [BahanBakuController::class, 'penyusutan'])->name('bahan-baku.penyusutan');
 
-    // Laporan PDF dengan filter tanggal (mendukung query string ?tanggal_mulai=&tanggal_selesai=)
+    // 3. Modul Riwayat Aktivitas
+    Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat.index');
+    Route::delete('/riwayat/{id}', [RiwayatController::class, 'destroy'])->name('riwayat.destroy');
+
+    // 4. Modul Cetak Laporan (Khusus Admin)
+    Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/riwayat-pdf', [LaporanController::class, 'cetakRiwayatPdf'])->name('laporan.riwayat.pdf');
 
-    // Hapus satu record riwayat stok
-    Route::delete('/riwayat/{id}', [RiwayatController::class, 'destroy'])->name('riwayat.destroy');
+    // 5. Modul Master Data Bahan Baku
+    Route::post('/bahan-baku/store-master', [BahanBakuController::class, 'storeMaster'])->name('bahan-baku.store-master');
+    Route::delete('/bahan-baku/{id}', [BahanBakuController::class, 'destroy'])->name('bahan-baku.destroy');
+
+    // 6. Modul Produk & Resep (specific routes dulu, baru wildcard {id})
+    Route::get('/produk', [ProdukController::class, 'index'])->name('produk.index');
+    Route::post('/produk', [ProdukController::class, 'store'])->name('produk.store');
+    Route::post('/produk/{produkId}/resep', [ProdukController::class, 'tambahResep'])->name('produk.tambah-resep');
+    Route::put('/produk/resep/{resepId}', [ProdukController::class, 'updateResep'])->name('produk.update-resep');
+    Route::delete('/produk/resep/{resepId}', [ProdukController::class, 'hapusResep'])->name('produk.hapus-resep');
+    Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->name('produk.destroy');
+
+    // 7. Modul Manajemen User (Khusus Admin)
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
 });
+

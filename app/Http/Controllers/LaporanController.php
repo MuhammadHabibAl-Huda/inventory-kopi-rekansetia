@@ -4,43 +4,86 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\RiwayatStok;
+use App\Models\BahanBaku;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class LaporanController extends Controller
 {
     /**
-     * Mencetak laporan riwayat aktivitas stok dalam format PDF.
-     * Mendukung filter berdasarkan rentang tanggal melalui query string:
-     *   ?tanggal_mulai=YYYY-MM-DD&tanggal_selesai=YYYY-MM-DD
+     * Menampilkan halaman Web Filter Cetak Laporan
+     * Jika ada parameter filter, tampilkan juga preview data
+     */
+    public function index(Request $request)
+    {
+        $semuaBahan  = BahanBaku::orderBy('nama_bahan')->get();
+        $riwayat     = null;
+        $filterAktif = $request->hasAny(['tanggal_mulai', 'tanggal_selesai', 'jenis', 'bahan_id']);
+
+        if ($filterAktif) {
+            $query = RiwayatStok::with('bahanBaku')->latest();
+
+            if ($request->filled('tanggal_mulai')) {
+                $query->whereDate('created_at', '>=', $request->tanggal_mulai);
+            }
+            if ($request->filled('tanggal_selesai')) {
+                $query->whereDate('created_at', '<=', $request->tanggal_selesai);
+            }
+            if ($request->filled('jenis')) {
+                $query->where('jenis', $request->jenis);
+            }
+            if ($request->filled('bahan_id')) {
+                $query->where('bahan_baku_id', $request->bahan_id);
+            }
+
+            $riwayat = $query->get();
+        }
+
+        return view('laporan.index', compact('semuaBahan', 'riwayat', 'filterAktif'));
+    }
+
+    /**
+     * Generate dan Download File PDF dengan filter lengkap
      */
     public function cetakRiwayatPdf(Request $request)
     {
-        // Ambil parameter filter tanggal dari query string
-        $tanggalMulai   = $request->input('tanggal_mulai');
-        $tanggalSelesai = $request->input('tanggal_selesai');
+        $tanggalMulai  = $request->tanggal_mulai;
+        $tanggalSelesai = $request->tanggal_selesai;
+        $jenis         = $request->jenis;
+        $bahanId       = $request->bahan_id;
 
-        // Bangun query dasar
-        $query = RiwayatStok::with('bahanBaku')->latest();
+        $query = RiwayatStok::with('bahanBaku');
 
-        // Terapkan filter tanggal jika keduanya diisi
         if ($tanggalMulai && $tanggalSelesai) {
-            // whereDate memastikan perbandingan hanya pada bagian tanggal (tanpa jam)
-            $query->whereDate('created_at', '>=', $tanggalMulai)
-                  ->whereDate('created_at', '<=', $tanggalSelesai);
+            $query->whereBetween('created_at', [
+                $tanggalMulai . ' 00:00:00',
+                $tanggalSelesai . ' 23:59:59'
+            ]);
+        }
+        if ($jenis) {
+            $query->where('jenis', $jenis);
+        }
+        if ($bahanId) {
+            $query->where('bahan_baku_id', $bahanId);
         }
 
-        $riwayat = $query->get();
+        $riwayat  = $query->latest()->get();
+        $namaBahan = $bahanId ? BahanBaku::find($bahanId)?->nama_bahan : null;
 
-        // Kirim data dan info filter ke template PDF
-        $pdf = Pdf::loadView('laporan.riwayat_pdf', compact('riwayat', 'tanggalMulai', 'tanggalSelesai'));
+        // Ringkasan total untuk PDF
+        $totalMasuk  = $riwayat->where('jenis', 'Masuk')->sum('jumlah');
+        $totalKeluar = $riwayat->where('jenis', 'Keluar')->sum('jumlah');
 
-        // Nama file otomatis menyesuaikan filter tanggal
-        if ($tanggalMulai && $tanggalSelesai) {
-            $namaFile = 'Laporan_Stok_RekanSetia_' . $tanggalMulai . '_sd_' . $tanggalSelesai . '.pdf';
-        } else {
-            $namaFile = 'Laporan_Stok_RekanSetia_' . date('Y-m-d') . '.pdf';
-        }
+        $pdf = Pdf::loadView('laporan.riwayat_pdf', compact(
+            'riwayat', 'tanggalMulai', 'tanggalSelesai',
+            'jenis', 'namaBahan', 'totalMasuk', 'totalKeluar'
+        ));
 
-        return $pdf->stream($namaFile);
+        // Nama file dinamis berdasarkan filter
+        $namaFile = 'Laporan_Stok_' . date('dMY');
+        if ($jenis)    $namaFile .= '_' . $jenis;
+        if ($namaBahan) $namaFile .= '_' . str_replace(' ', '_', $namaBahan);
+        $namaFile .= '.pdf';
+
+        return $pdf->download($namaFile);
     }
 }
