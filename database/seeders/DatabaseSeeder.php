@@ -18,20 +18,7 @@ class DatabaseSeeder extends Seeder
         // Panggil seeder kopi rekan setia yang sudah kamu buat di sini:
         $this->call(KopiRekanSetiaSeeder::class);
 
-        // Buat akun Admin
-        User::create([
-            'name' => 'Admin Rekan Setia',
-            'email' => 'admin@rekansetia.com',
-            'password' => 'password',
-            'role' => 'admin',
-        ]);
-
-        // Buat akun Barista
-        User::create([
-            'name' => 'Barista Rekan Setia',
-            'email' => 'barista@rekansetia.com',
-            'password' => 'password',
-            'role' => 'barista',
-        ]);
+        // Panggil seeder user
+        $this->call(UserSeeder::class);
     }
 }
