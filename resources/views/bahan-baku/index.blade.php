@@ -31,17 +31,18 @@
     <form action="{{ route('bahan-baku.restock') }}" method="POST" class="form-body">
         @csrf
         <div class="form-group">
-            <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— pilih barang yang akan di-restock</span></label>
+            <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— pilih barang aktif yang akan di-restock</span></label>
             <select name="bahan_id" required class="form-select">
                 <option value="">-- Pilih Barang --</option>
-                @foreach($semuaBahan as $bahan)
+                @foreach($bahanAktif as $bahan)
                 <option value="{{ $bahan->id }}">{{ $bahan->nama_bahan }} ({{ $bahan->satuan }})</option>
                 @endforeach
             </select>
         </div>
         <div class="form-group">
             <label class="form-label">Jumlah Stok Tambahan <span class="form-label-sub">— masukkan jumlah dari supplier</span></label>
-            <input type="number" name="jumlah_masuk" min="1" required placeholder="Contoh: 5000" class="form-input">
+            {{-- Ditambahkan step="any" dan min="0.01" agar bisa menerima koma --}}
+            <input type="number" step="any" name="jumlah_masuk" min="0.01" required placeholder="Contoh: 500.5" class="form-input">
         </div>
         <div class="form-group">
             <label class="form-label">Nama Supplier <span class="form-label-sub">— nama penyuplai / tempat belanja</span></label>
@@ -52,28 +53,38 @@
 </div>
 @endif
 
-<!-- FORM PENYUSUTAN (Semua Role) -->
+<!-- FORM PENYUSUTAN & ADD-ON (Semua Role) -->
 <div class="form-card">
-    <div class="form-card-header">
-        <span class="header-icon orange">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
+    <div class="form-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="header-icon orange">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </span>
+            <h3 style="margin: 0;">Pencatatan Penyusutan Bahan Baku</h3>
+        </div>
+        <!-- Tombol Buka Modal Add-on -->
+        <button type="button" onclick="document.getElementById('modalAddon').style.display='flex'" style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; background: #f59e0b; color: #fff; font-size: 12px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-        </span>
-        <h3>Pencatatan Penyusutan Bahan Baku</h3>
+            Catat Add-on Manual
+        </button>
     </div>
     <div class="form-body">
         <form action="{{ route('bahan-baku.penyusutan') }}" method="POST" onsubmit="return konfirmasiPenyusutan(this)">
             @csrf
             <div class="form-group">
-                <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— bahan yang mengalami penyusutan</span></label>
+                <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— bahan aktif yang mengalami penyusutan</span></label>
                 <select name="bahan_id" required class="form-select" onchange="updateStokInfo(this)">
                     <option value="">-- Pilih Barang --</option>
-                    @foreach($semuaBahan as $bahan)
+                    @foreach($bahanAktif as $bahan)
                     <option value="{{ $bahan->id }}" data-stok="{{ $bahan->stok_sisa }}" data-satuan="{{ $bahan->satuan }}">
-                        {{ $bahan->nama_bahan }} — stok: {{ number_format($bahan->stok_sisa, 0, ',', '.') }} {{ $bahan->satuan }}
+                        {{ $bahan->nama_bahan }} — stok: {{ number_format($bahan->stok_sisa, 2, ',', '.') }} {{ $bahan->satuan }}
                     </option>
                     @endforeach
                 </select>
@@ -83,7 +94,8 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Jumlah Penyusutan <span class="form-label-sub">— jumlah yang rusak/tumpah/terbuang</span></label>
-                <input type="number" name="jumlah_susut" id="inputJumlahSusut" min="1" required placeholder="Contoh: 500" class="form-input" oninput="validasiJumlahSusut(this)">
+                {{-- Ditambahkan step="any" dan min="0.01" agar bisa menerima koma --}}
+                <input type="number" step="any" name="jumlah_susut" id="inputJumlahSusut" min="0.01" required placeholder="Contoh: 1.5" class="form-input" oninput="validasiJumlahSusut(this)">
                 <div id="peringatan-susut" style="display:none; margin-top:8px; padding:8px 12px; background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; font-size:13px; color:#991b1b;"></div>
             </div>
             <div class="form-group">
@@ -106,7 +118,7 @@
     </div>
 </div>
 
-<!-- BAGIAN B: MODAL TAMBAH BAHAN BARU (Custom, tanpa Bootstrap JS dependency) -->
+<!-- BAGIAN B: MODAL TAMBAH BAHAN BARU (Admin Only) -->
 <div id="modalTambahBahan" style="display:none; position:fixed; inset:0; z-index:999; align-items:center; justify-content:center; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);">
     <div style="background:#fff; border-radius:12px; width:100%; max-width:480px; margin:16px; box-shadow:0 20px 40px rgba(0,0,0,0.18); overflow:hidden;">
         <!-- Header Modal -->
@@ -157,6 +169,56 @@
         </form>
     </div>
 </div>
+
+<!-- BAGIAN C: MODAL CATAT ADD-ON MANUAL (Semua Role) -->
+<div id="modalAddon" style="display:none; position:fixed; inset:0; z-index:999; align-items:center; justify-content:center; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);">
+    <div style="background:#fff; border-radius:12px; width:100%; max-width:480px; margin:16px; box-shadow:0 20px 40px rgba(0,0,0,0.18); overflow:hidden;">
+        <!-- Header Modal -->
+        <div style="background:#1e293b; color:#fff; padding:18px 24px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:30px; height:30px; background:rgba(245,158,11,0.25); border-radius:7px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </span>
+                <h5 style="font-size:15px; font-weight:600; margin:0;">Catat Add-on Manual</h5>
+            </div>
+            <button type="button" onclick="document.getElementById('modalAddon').style.display='none'" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
+        </div>
+        <!-- Body Modal -->
+        <form action="{{ route('bahan-baku.penyusutan') }}" method="POST">
+            @csrf
+            {{-- Hidden input untuk jenis penyusutan --}}
+            <input type="hidden" name="jenis_penyusutan" value="Add-on Manual Kasir">
+            
+            <div style="padding:24px;">
+                <div class="form-group">
+                    <label class="form-label">Pilih Bahan Baku Tambahan</label>
+                    <select name="bahan_id" required class="form-select">
+                        <option value="" selected disabled>-- Pilih Bahan --</option>
+                        @foreach($bahanAktif as $bahan)
+                            <option value="{{ $bahan->id }}">{{ $bahan->nama_bahan }} (Stok: {{ number_format($bahan->stok_sisa, 2, ',', '.') }} {{ $bahan->satuan }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Jumlah Digunakan</label>
+                    <input type="number" name="jumlah_susut" step="any" min="0.01" required class="form-input" placeholder="Contoh: 18.5">
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Keterangan / Nama Pesanan</label>
+                    <input type="text" name="keterangan" required class="form-input" placeholder="Contoh: Extra Shot untuk pesanan Bpk. Budi">
+                </div>
+            </div>
+            <!-- Footer Modal -->
+            <div style="padding:14px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="document.getElementById('modalAddon').style.display='none'" style="padding:9px 18px; background:#fff; border:1.5px solid #e2e8f0; border-radius:7px; font-size:13px; font-weight:600; color:#475569; cursor:pointer;">Batal</button>
+                <button type="submit" style="padding:9px 20px; background:#f59e0b; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;">Simpan Add-on</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -169,7 +231,7 @@
         if (selectEl.value && option) {
             const stok = parseFloat(option.getAttribute('data-stok'));
             const satuan = option.getAttribute('data-satuan');
-            valueEl.textContent = `${stok.toLocaleString('id-ID')} ${satuan}`;
+            valueEl.textContent = `${stok.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${satuan}`;
             infoEl.style.display = 'block';
         } else {
             infoEl.style.display = 'none';
@@ -189,7 +251,7 @@
         const satuan = option.getAttribute('data-satuan');
         const jumlah = parseFloat(inputEl.value);
         if (!isNaN(jumlah) && jumlah > stokTersedia) {
-            peringatanEl.textContent = `⚠ Jumlah penyusutan (${jumlah.toLocaleString('id-ID')} ${satuan}) melebihi stok yang tersedia (${stokTersedia.toLocaleString('id-ID')} ${satuan}).`;
+            peringatanEl.textContent = `⚠ Jumlah penyusutan (${jumlah.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${satuan}) melebihi stok yang tersedia (${stokTersedia.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${satuan}).`;
             peringatanEl.style.display = 'block';
         } else {
             peringatanEl.style.display = 'none';
@@ -203,7 +265,7 @@
         const jenisPenyusutanEl = formEl.querySelector('select[name="jenis_penyusutan"]');
         if (!selectEl.value || !jumlahEl.value || !jenisPenyusutanEl.value) return true;
         const namaBahan = selectEl.options[selectEl.selectedIndex].text.split(' —')[0];
-        const jumlah = parseFloat(jumlahEl.value).toLocaleString('id-ID');
+        const jumlah = parseFloat(jumlahEl.value).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         const satuan = selectEl.options[selectEl.selectedIndex].getAttribute('data-satuan');
         const jenis = jenisPenyusutanEl.options[jenisPenyusutanEl.selectedIndex].text;
         // Cek jika jumlah melebihi stok, blokir submit
@@ -215,8 +277,11 @@
         return confirm(`Konfirmasi Penyusutan:\n\nBahan: ${namaBahan}\nJumlah: ${jumlah} ${satuan}\nJenis: ${jenis}\n\nApakah data ini sudah benar?`);
     }
 
-    // --- Tutup modal jika klik area luar ---
+    // --- Tutup modal jika klik area luar (backdrop) ---
     document.getElementById('modalTambahBahan').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+    document.getElementById('modalAddon').addEventListener('click', function(e) {
         if (e.target === this) this.style.display = 'none';
     });
 </script>

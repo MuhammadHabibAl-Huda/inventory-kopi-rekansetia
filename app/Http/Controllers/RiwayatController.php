@@ -10,18 +10,27 @@ class RiwayatController extends Controller
 {
     /**
      * Menampilkan halaman Riwayat Aktivitas Log Gudang
-     * Mendukung filter: tanggal_mulai, tanggal_selesai, jenis, bahan_id
+     * Default: Menampilkan riwayat HARI INI saja.
+     * Filter: tanggal_mulai, tanggal_selesai, jenis, bahan_id
      */
     public function index(Request $request)
     {
         $query = RiwayatStok::with('bahanBaku')->latest();
 
-        // Filter tanggal
-        if ($request->filled('tanggal_mulai')) {
-            $query->whereDate('created_at', '>=', $request->tanggal_mulai);
-        }
-        if ($request->filled('tanggal_selesai')) {
-            $query->whereDate('created_at', '<=', $request->tanggal_selesai);
+        // Cek apakah pengguna sedang menggunakan filter pencarian/tanggal
+        $adaFilterTanggal = $request->filled('tanggal_mulai') || $request->filled('tanggal_selesai');
+
+        if (!$adaFilterTanggal) {
+            // Jika TIDAK ADA filter tanggal, default tampilkan data HARI INI saja
+            $query->whereDate('created_at', today());
+        } else {
+            // Jika ADA filter tanggal, jalankan filter rentang tanggal
+            if ($request->filled('tanggal_mulai')) {
+                $query->whereDate('created_at', '>=', $request->tanggal_mulai);
+            }
+            if ($request->filled('tanggal_selesai')) {
+                $query->whereDate('created_at', '<=', $request->tanggal_selesai);
+            }
         }
 
         // Filter jenis (Masuk / Keluar)
@@ -34,8 +43,8 @@ class RiwayatController extends Controller
             $query->where('bahan_baku_id', $request->bahan_id);
         }
 
-        $riwayat     = $query->get();
-        $semuaBahan  = BahanBaku::orderBy('nama_bahan')->get();
+        $riwayat    = $query->get();
+        $semuaBahan = BahanBaku::orderBy('nama_bahan')->get();
 
         return view('riwayat.index', compact('riwayat', 'semuaBahan'));
     }

@@ -153,14 +153,14 @@
                     </div>
                 </a>
 
-                {{-- 3. Riwayat Aktivitas --}}
+                {{-- 3. Laporan (Riwayat & Unduh PDF) --}}
                 <a href="{{ route('riwayat.index') }}" class="nav-item {{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
                     <div class="nav-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     </div>
                     <div class="nav-item-text">
-                        <span>Riwayat Aktivitas</span>
-                        <span>Log mutasi gudang</span>
+                        <span>Laporan</span>
+                        <span>Riwayat &amp; unduh PDF</span>
                     </div>
                 </a>
 
@@ -178,18 +178,7 @@
                 @if(Auth::user()->isAdmin())
                 <div class="sidebar-nav-label" style="margin-top: 12px;">Admin Only</div>
 
-                {{-- 5. Cetak Laporan --}}
-                <a href="{{ route('laporan.index') }}" class="nav-item {{ request()->routeIs('laporan.*') ? 'active' : '' }}">
-                    <div class="nav-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                    </div>
-                    <div class="nav-item-text">
-                        <span>Cetak Laporan</span>
-                        <span>Unduh laporan PDF</span>
-                    </div>
-                </a>
-
-                {{-- 6. Manajemen User --}}
+                {{-- 5. Manajemen User --}}
                 <a href="{{ route('users.index') }}" class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <div class="nav-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>

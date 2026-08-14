@@ -55,6 +55,11 @@ Route::middleware('auth')->group(function () {
     // 7. Modul Manajemen User (Khusus Admin)
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    // 8. Modul Nonaktif Bahan Baku
+    Route::patch('/bahan-baku/{id}/toggle-status', [BahanBakuController::class, 'toggleStatus'])
+    ->name('bahan-baku.toggle-status');
 });
 

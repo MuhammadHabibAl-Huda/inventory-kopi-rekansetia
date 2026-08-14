@@ -53,11 +53,11 @@ class LaporanController extends Controller
 
         $query = RiwayatStok::with('bahanBaku');
 
-        if ($tanggalMulai && $tanggalSelesai) {
-            $query->whereBetween('created_at', [
-                $tanggalMulai . ' 00:00:00',
-                $tanggalSelesai . ' 23:59:59'
-            ]);
+        if ($tanggalMulai) {
+            $query->whereDate('created_at', '>=', $tanggalMulai);
+        }
+        if ($tanggalSelesai) {
+            $query->whereDate('created_at', '<=', $tanggalSelesai);
         }
         if ($jenis) {
             $query->where('jenis', $jenis);
@@ -74,8 +74,13 @@ class LaporanController extends Controller
         $totalKeluar = $riwayat->where('jenis', 'Keluar')->sum('jumlah');
 
         $pdf = Pdf::loadView('laporan.riwayat_pdf', compact(
-            'riwayat', 'tanggalMulai', 'tanggalSelesai',
-            'jenis', 'namaBahan', 'totalMasuk', 'totalKeluar'
+            'riwayat',
+            'tanggalMulai',
+            'tanggalSelesai',
+            'jenis',
+            'namaBahan',
+            'totalMasuk',
+            'totalKeluar'
         ));
 
         // Nama file dinamis berdasarkan filter

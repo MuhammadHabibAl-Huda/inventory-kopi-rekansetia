@@ -66,7 +66,7 @@
                 <td class="cell-bold">{{ $i + 1 }}</td>
                 <td class="cell-bold">{{ $bahan->nama_bahan }}</td>
                 <td>{{ $bahan->satuan }}</td>
-                <td>{{ number_format($bahan->pivot->jumlah_dibutuhkan, 0, ',', '.') }} {{ $bahan->satuan }}</td>
+                <td>{{ number_format($bahan->pivot->jumlah_dibutuhkan, 2, ',', '.') }} {{ $bahan->satuan }}</td>
                 @if(Auth::user()->isAdmin())
                 <td style="text-align:center">
                     <button type="button"

@@ -56,16 +56,29 @@
                     @endif
                 </td>
                 <td style="text-align:center">
-                    @if($user->id !== Auth::id())
-                    <form action="{{ route('users.destroy', $user->id) }}" method="POST"
-                          onsubmit="return confirm('Hapus akun &quot;{{ $user->name }}&quot;?\n\nAkun ini tidak akan bisa login lagi.')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:12px; font-weight:600;">Hapus</button>
-                    </form>
-                    @else
-                    <span style="color:#94a3b8; font-size:12px;">—</span>
-                    @endif
+                    <div style="display:inline-flex; align-items:center; gap:8px;">
+                        {{-- Tombol Edit hanya untuk akun barista --}}
+                        @if($user->role === 'barista')
+                        <button type="button"
+                            onclick="bukaModalEdit({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}')"
+                            style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                        </button>
+                        @endif
+
+                        {{-- Tombol Hapus (tidak bisa hapus diri sendiri & tidak bisa hapus admin) --}}
+                        @if($user->id !== Auth::id() && $user->role !== 'admin')
+                        <form action="{{ route('users.destroy', $user->id) }}" method="POST"
+                              onsubmit="return confirm('Hapus akun &quot;{{ $user->name }}&quot;?\n\nAkun ini tidak akan bisa login lagi.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:12px; font-weight:600;">Hapus</button>
+                        </form>
+                        @else
+                        <span style="color:#94a3b8; font-size:12px;">—</span>
+                        @endif
+                    </div>
                 </td>
             </tr>
             @endforeach
@@ -120,6 +133,50 @@
     </div>
 </div>
 
+{{-- MODAL EDIT AKUN --}}
+<div id="modalEditUser" style="display:none; position:fixed; inset:0; z-index:999; align-items:center; justify-content:center; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);">
+    <div style="background:#fff; border-radius:12px; width:100%; max-width:460px; margin:16px; box-shadow:0 20px 40px rgba(0,0,0,0.18); overflow:hidden;">
+        <div style="background:#1e293b; color:#fff; padding:18px 24px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="width:30px; height:30px; background:rgba(37,99,235,0.25); border-radius:7px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </span>
+                <h5 style="font-size:15px; font-weight:600; margin:0;">Edit Akun</h5>
+            </div>
+            <button type="button" onclick="tutupModalEdit()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">&times;</button>
+        </div>
+        <form id="formEditUser" method="POST">
+            @csrf
+            @method('PUT')
+            <div style="padding:24px;">
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" id="editNama" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email <span class="form-label-sub">— digunakan untuk login</span></label>
+                    <input type="email" id="editEmail" name="email" class="form-input" required>
+                </div>
+                <div style="border-top:1px dashed #e2e8f0; margin:4px 0 16px; padding-top:16px;">
+                    <p style="font-size:12px; color:#94a3b8; margin:0 0 12px;">Kosongkan kolom password jika tidak ingin mengubahnya.</p>
+                    <div class="form-group">
+                        <label class="form-label">Password Baru <span class="form-label-sub">— opsional</span></label>
+                        <input type="password" name="password" class="form-input" placeholder="Isi jika ingin ubah password">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Konfirmasi Password Baru</label>
+                        <input type="password" name="password_confirmation" class="form-input" placeholder="Ulangi password baru">
+                    </div>
+                </div>
+            </div>
+            <div style="padding:14px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="tutupModalEdit()" style="padding:9px 18px; background:#fff; border:1.5px solid #e2e8f0; border-radius:7px; font-size:13px; font-weight:600; color:#475569; cursor:pointer;">Batal</button>
+                <button type="submit" style="padding:9px 20px; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:600; cursor:pointer;">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -128,5 +185,29 @@
     document.getElementById('modalTambahUser').addEventListener('click', function(e) {
         if (e.target === this) this.style.display = 'none';
     });
+
+    document.getElementById('modalEditUser').addEventListener('click', function(e) {
+        if (e.target === this) tutupModalEdit();
+    });
+
+    function bukaModalEdit(id, nama, email) {
+        // Set action form sesuai ID user
+        document.getElementById('formEditUser').action = '/users/' + id;
+
+        // Isi field dengan data user yang ada
+        document.getElementById('editNama').value  = nama;
+        document.getElementById('editEmail').value = email;
+
+        // Kosongkan field password
+        document.querySelectorAll('#formEditUser input[type="password"]').forEach(function(el) {
+            el.value = '';
+        });
+
+        document.getElementById('modalEditUser').style.display = 'flex';
+    }
+
+    function tutupModalEdit() {
+        document.getElementById('modalEditUser').style.display = 'none';
+    }
 </script>
 @endpush

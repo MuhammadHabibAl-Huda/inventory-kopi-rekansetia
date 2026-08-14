@@ -131,7 +131,7 @@
                         {{ $row->status }}
                     </span>
                 </td>
-                <td style="text-align: right;">{{ number_format($row->jumlah, 0, ',', '.') }}</td>
+                <td style="text-align: right;">{{ number_format($row->jumlah, 2, ',', '.') }}</td>
                 <td>{{ $row->bahanBaku->satuan ?? '-' }}</td>
                 <td>{{ $row->keterangan ?? '-' }}</td>
             </tr>

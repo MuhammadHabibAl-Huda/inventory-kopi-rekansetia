@@ -14,8 +14,11 @@ class BahanBakuController extends Controller
     public function index()
     {
         $semuaBahan = BahanBaku::all();
+        
+        // LOGIKA BARU: Ambil hanya bahan baku yang AKTIF untuk dropdown Pilihan Form
+        $bahanAktif = BahanBaku::where('is_active', true)->get();
 
-        return view('bahan-baku.index', compact('semuaBahan'));
+        return view('bahan-baku.index', compact('semuaBahan', 'bahanAktif'));
     }
 
     /**
@@ -25,11 +28,19 @@ class BahanBakuController extends Controller
     {
         $request->validate([
             'bahan_id'     => 'required|exists:bahan_bakus,id',
-            'jumlah_masuk' => 'required|integer|min:1',
+            'jumlah_masuk' => 'required|numeric|min:0.01', // Diubah dari integer menjadi numeric
             'supplier'     => 'required|string|max:255',
         ]);
 
         $bahan = BahanBaku::findOrFail($request->bahan_id);
+
+        // PROTEKSI LOGIKA: Cegah Restock jika status bahan baku NONAKTIF
+        if (!$bahan->is_active) {
+            return back()->withErrors([
+                'bahan_id' => 'Gagal! Bahan baku "' . $bahan->nama_bahan . '" sedang NONAKTIF. Aktifkan terlebih dahulu di Dashboard untuk melakukan Restock.'
+            ])->withInput();
+        }
+
         $bahan->stok_sisa = $bahan->stok_sisa + $request->jumlah_masuk;
         $bahan->save();
 
@@ -49,14 +60,22 @@ class BahanBakuController extends Controller
     public function penyusutan(Request $request)
     {
         $request->validate([
-            'bahan_id'        => 'required|exists:bahan_bakus,id',
-            'jumlah_susut'    => 'required|integer|min:1',
+            'bahan_id'         => 'required|exists:bahan_bakus,id',
+            'jumlah_susut'     => 'required|numeric|min:0.01', // Diubah dari integer menjadi numeric
             'jenis_penyusutan' => 'required|string',
-            'keterangan'      => 'nullable|string|max:500',
+            'keterangan'       => 'nullable|string|max:500',
         ]);
 
         $bahan = BahanBaku::findOrFail($request->bahan_id);
 
+        // PROTEKSI LOGIKA 1: Cegah Penyusutan jika status bahan baku NONAKTIF
+        if (!$bahan->is_active) {
+            return back()->withErrors([
+                'bahan_id' => 'Gagal! Bahan baku "' . $bahan->nama_bahan . '" sedang NONAKTIF.'
+            ])->withInput();
+        }
+
+        // PROTEKSI LOGIKA 2: Cek ketersediaan stok
         if ($request->jumlah_susut > $bahan->stok_sisa) {
             return back()->withErrors([
                 'jumlah_susut' => 'Jumlah penyusutan (' . $request->jumlah_susut . ' ' . $bahan->satuan . ') melebihi stok yang tersedia (' . $bahan->stok_sisa . ' ' . $bahan->satuan . ').'
@@ -81,10 +100,11 @@ class BahanBakuController extends Controller
         return redirect()->route('bahan-baku.index')->with('success', 'Penyusutan stok ' . $bahan->nama_bahan . ' sebesar ' . $request->jumlah_susut . ' ' . $bahan->satuan . ' berhasil dicatat!');
     }
 
-    // Method untuk menambah jenis Bahan Baku baru (Master Data)
+    /**
+     * Memproses penambahan jenis Bahan Baku baru (Master Data)
+     */
     public function storeMaster(Request $request)
     {
-        // 1. Validasi input
         $request->validate([
             'nama_bahan'   => 'required|string|max:255|unique:bahan_bakus,nama_bahan',
             'satuan'       => 'required|string|max:50',
@@ -94,29 +114,31 @@ class BahanBakuController extends Controller
             'nama_bahan.unique' => 'Nama bahan baku ini sudah terdaftar!',
         ]);
 
-        // 2. Simpan ke database
         BahanBaku::create([
             'nama_bahan'   => $request->nama_bahan,
             'satuan'       => $request->satuan,
             'stok_sisa'    => $request->stok_sisa,
             'stok_minimum' => $request->stok_minimum,
+            'is_active'    => true,
         ]);
 
-        // 3. Kembali ke halaman bahan baku dengan pesan sukses
         return redirect()->route('bahan-baku.index')
             ->with('success', 'Jenis bahan baku baru berhasil ditambahkan!');
     }
 
-    // Method untuk menghapus jenis Bahan Baku (Master Data) beserta riwayatnya
-    public function destroy($id)
+    /**
+     * Mengubah status Aktif/Nonaktif Bahan Baku
+     */
+    public function toggleStatus($id)
     {
         $bahan = BahanBaku::findOrFail($id);
-        $namaBahan = $bahan->nama_bahan;
+        
+        $bahan->is_active = !$bahan->is_active;
+        $bahan->save();
 
-        // Hapus bahan baku (riwayat terhapus otomatis via cascade di database)
-        $bahan->delete();
+        $statusTeks = $bahan->is_active ? 'diaktifkan kembali' : 'dinonaktifkan';
 
         return redirect()->route('dashboard')
-            ->with('success', 'Bahan baku "' . $namaBahan . '" berhasil dihapus dari sistem.');
+            ->with('success', 'Bahan baku "' . $bahan->nama_bahan . '" berhasil ' . $statusTeks . '.');
     }
 }

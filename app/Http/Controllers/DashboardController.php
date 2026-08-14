@@ -11,7 +11,8 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $semuaBahan = BahanBaku::all();
+        // Ambil semua bahan baku untuk ditampilkan di tabel (termasuk nonaktif)
+        $semuaBahan = BahanBaku::orderBy('nama_bahan')->get();
 
         return view('dashboard', compact('semuaBahan'));
     }

@@ -13,65 +13,107 @@ class PenjualanController extends Controller
 {
     public function terimaTransaksiPOS(Request $request)
     {
-        // 1. Validasi data yang masuk dari POS
+        // 1. Validasi membaca format "keranjang" dan input desimal
         $request->validate([
-            'nama_produk'   => 'required|string',
-            'jumlah_terjual' => 'required|integer|min:1',
+            'keranjang'                            => 'required|array|min:1',
+            'keranjang.*.nama_produk'              => 'required|string',
+            'keranjang.*.jumlah_terjual'           => 'required|numeric|min:1',
+            'keranjang.*.tambahan'                 => 'nullable|array',
+            'keranjang.*.tambahan.*.bahan_baku_id' => 'required|exists:bahan_bakus,id',
+            'keranjang.*.tambahan.*.jumlah'        => 'required|numeric|min:0.01',
         ]);
 
-        // 2. Cari produk di database berdasarkan nama
-        $produk = Produk::where('nama_produk', $request->nama_produk)->first();
+        $kebutuhanBahan = [];
 
-        if (!$produk) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Produk "' . $request->nama_produk . '" tidak terdaftar di sistem resep.',
-            ], 404);
+        // 2. Looping isi keranjang untuk menotal semua bahan baku
+        foreach ($request->keranjang as $item) {
+            $produk = Produk::where('nama_produk', $item['nama_produk'])->first();
+
+            if (!$produk) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Produk "' . $item['nama_produk'] . '" tidak terdaftar di sistem.',
+                ], 404);
+            }
+
+            // A. Hitung kebutuhan dari resep dasar
+            foreach ($produk->bahanBakus as $bahan) {
+                $idBahan = $bahan->id;
+                $jumlahButuh = $bahan->pivot->jumlah_dibutuhkan * $item['jumlah_terjual'];
+
+                // Jika bahan sudah ada di daftar kebutuhan, tambahkan nilainya. Jika belum, buat baru.
+                if (isset($kebutuhanBahan[$idBahan])) {
+                    $kebutuhanBahan[$idBahan]['jumlah'] += $jumlahButuh;
+                    $kebutuhanBahan[$idBahan]['keterangan'][] = $item['jumlah_terjual'] . ' ' . $item['nama_produk'];
+                } else {
+                    $kebutuhanBahan[$idBahan] = [
+                        'jumlah' => $jumlahButuh,
+                        'keterangan' => [$item['jumlah_terjual'] . ' ' . $item['nama_produk']]
+                    ];
+                }
+            }
+
+            // B. Hitung kebutuhan dari Add-on (jika ada)
+            if (isset($item['tambahan'])) {
+                foreach ($item['tambahan'] as $addon) {
+                    $idBahan = $addon['bahan_baku_id'];
+                    $jumlahAddon = $addon['jumlah'];
+
+                    if (isset($kebutuhanBahan[$idBahan])) {
+                        $kebutuhanBahan[$idBahan]['jumlah'] += $jumlahAddon;
+                        $kebutuhanBahan[$idBahan]['keterangan'][] = 'Add-on untuk ' . $item['nama_produk'];
+                    } else {
+                        $kebutuhanBahan[$idBahan] = [
+                            'jumlah' => $jumlahAddon,
+                            'keterangan' => ['Add-on untuk ' . $item['nama_produk']]
+                        ];
+                    }
+                }
+            }
         }
 
-        // 3. Ambil semua bahan baku dari resep produk ini
-        $resepBahan = $produk->bahanBakus;
+        // 3. CEK KECUKUPAN STOK SECARA GLOBAL
+        $bahanModels = BahanBaku::whereIn('id', array_keys($kebutuhanBahan))->get()->keyBy('id');
 
-        // 4. CEK KECUKUPAN STOK TERLEBIH DAHULU (sebelum ada pemotongan)
-        foreach ($resepBahan as $bahan) {
-            $totalDibutuhkan = $bahan->pivot->jumlah_dibutuhkan * $request->jumlah_terjual;
+        foreach ($kebutuhanBahan as $id => $dataKebutuhan) {
+            $bahan = $bahanModels[$id];
 
-            if ($bahan->stok_sisa < $totalDibutuhkan) {
+            if ($bahan->stok_sisa < $dataKebutuhan['jumlah']) {
                 return response()->json([
-                    'status'         => 'error',
-                    'message'        => 'Transaksi ditolak! Stok bahan baku [' . $bahan->nama_bahan . '] tidak mencukupi.',
-                    'stok_tersisa'   => $bahan->stok_sisa . ' ' . $bahan->satuan,
-                    'stok_dibutuhkan' => $totalDibutuhkan . ' ' . $bahan->satuan,
+                    'status'          => 'error',
+                    'message'         => 'Transaksi dibatalkan! Stok bahan baku [' . $bahan->nama_bahan . '] tidak mencukupi untuk keseluruhan pesanan.',
+                    'stok_tersisa'    => $bahan->stok_sisa . ' ' . $bahan->satuan,
+                    'total_dibutuhkan' => $dataKebutuhan['jumlah'] . ' ' . $bahan->satuan,
                 ], 400);
             }
         }
 
-        // 5. LAKUKAN PEMOTONGAN STOK + CATAT KE RIWAYAT
-        //    Dibungkus DB::transaction agar jika satu gagal, semua dibatalkan
-        DB::transaction(function () use ($resepBahan, $request) {
-            foreach ($resepBahan as $bahan) {
-                $totalDibutuhkan = $bahan->pivot->jumlah_dibutuhkan * $request->jumlah_terjual;
+        // 4. LAKUKAN PEMOTONGAN STOK + CATAT KE RIWAYAT
+        DB::transaction(function () use ($kebutuhanBahan, $bahanModels) {
+            foreach ($kebutuhanBahan as $id => $dataKebutuhan) {
+                $bahan = $bahanModels[$id];
 
                 // Kurangi stok
-                $bahan->stok_sisa = $bahan->stok_sisa - $totalDibutuhkan;
-                $bahan->save();
+                $bahan->decrement('stok_sisa', $dataKebutuhan['jumlah']);
 
-                // Catat ke riwayat aktivitas (ini yang sebelumnya hilang!)
+                // Gabungkan keterangan array menjadi string unik
+                $teksKeterangan = 'POS — ' . implode(', ', array_unique($dataKebutuhan['keterangan']));
+
+                // Catat riwayat
                 RiwayatStok::create([
                     'bahan_baku_id' => $bahan->id,
                     'jenis'         => 'Keluar',
-                    'jumlah'        => $totalDibutuhkan,
-                    'keterangan'    => 'Pemotongan otomatis POS — ' . $request->jumlah_terjual . ' Cup ' . $request->nama_produk,
+                    'jumlah'        => $dataKebutuhan['jumlah'],
+                    'keterangan'    => $teksKeterangan,
                 ]);
             }
         });
 
-        // 6. Kirim respon sukses ke Postman / POS
+        // 5. Kirim respon sukses
         return response()->json([
-            'status'      => 'success',
-            'message'     => 'Stok berhasil dipotong dan dicatat ke riwayat aktivitas.',
-            'produk'      => $request->nama_produk,
-            'jumlah_porsi' => $request->jumlah_terjual . ' porsi',
+            'status'       => 'success',
+            'message'      => 'Seluruh transaksi di keranjang berhasil diproses. Stok telah dipotong otomatis.',
+            'total_item'   => count($request->keranjang) . ' macam produk',
         ], 200);
     }
 }

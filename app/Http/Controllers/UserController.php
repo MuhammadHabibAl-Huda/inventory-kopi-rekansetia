@@ -47,6 +47,51 @@ class UserController extends Controller
     }
 
     /**
+     * Mengupdate data user.
+     * Akun dengan role 'admin' tidak dapat diubah.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        // Proteksi: akun admin tidak boleh diedit
+        if ($user->role === 'admin') {
+            return back()->withErrors(['edit' => 'Akun admin tidak dapat diubah.']);
+        }
+
+        $rules = [
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+        ];
+
+        $messages = [
+            'email.unique'       => 'Email ini sudah digunakan akun lain!',
+            'password.min'       => 'Password minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ];
+
+        // Password hanya divalidasi jika diisi
+        if ($request->filled('password')) {
+            $rules['password'] = 'string|min:6|confirmed';
+        }
+
+        $request->validate($rules, $messages);
+
+        $user->name  = $request->name;
+        $user->email = $request->email;
+        // Role tidak diubah — tetap barista
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        return redirect()->route('users.index')
+            ->with('success', 'Akun "' . $user->name . '" berhasil diperbarui!');
+    }
+
+    /**
      * Menghapus user (tidak bisa hapus diri sendiri)
      */
     public function destroy($id)
