@@ -7,7 +7,9 @@
 
 @php
     // Pisahkan collection: aktif saja untuk statistik
-    $bahanAktif = $semuaBahan->where('is_active', true);
+    $bahanAktif   = $semuaBahan->where('is_active', true);
+    $stokAman     = $bahanAktif->filter(function($b) { return $b->stok_sisa > $b->stok_minimum; })->count();
+    $stokMenipis  = $bahanAktif->filter(function($b) { return $b->stok_sisa <= $b->stok_minimum; })->count();
 @endphp
 
 <!-- Summary Stats — hanya menghitung bahan AKTIF -->
@@ -20,14 +22,14 @@
     <div class="stat-card">
         <div class="stat-card-label">Stok Aman</div>
         <div class="stat-card-value" style="color: #10b981;">
-            {{ $bahanAktif->filter(fn($b) => $b->stok_sisa > $b->stok_minimum)->count() }}
+            {{ $stokAman }}
         </div>
         <div class="stat-card-sub">Bahan aktif di atas batas minimum</div>
     </div>
     <div class="stat-card">
         <div class="stat-card-label">Stok Menipis</div>
         <div class="stat-card-value" style="color: #ef4444;">
-            {{ $bahanAktif->filter(fn($b) => $b->stok_sisa <= $b->stok_minimum)->count() }}
+            {{ $stokMenipis }}
         </div>
         <div class="stat-card-sub">Bahan aktif perlu segera restock</div>
     </div>

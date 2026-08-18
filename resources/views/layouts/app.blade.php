@@ -118,7 +118,7 @@
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
     <div class="app-layout">
-        <!-- SIDEBAR NAVIGASI PLAN B -->
+        <!-- SIDEBAR NAVIGASI -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
                 <div class="sidebar-brand-icon">

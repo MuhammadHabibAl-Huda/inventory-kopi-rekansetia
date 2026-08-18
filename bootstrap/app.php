@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Jika user belum login dan mencoba akses rute yang dilindungi,
         // arahkan ke halaman login
         $middleware->redirectGuestsTo('/login');
+
+        // Daftarkan alias untuk middleware khusus Admin
+        $middleware->alias([
+            'admin.only' => \App\Http\Middleware\AdminOnly::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

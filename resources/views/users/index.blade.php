@@ -101,19 +101,29 @@
         <form action="{{ route('users.store') }}" method="POST">
             @csrf
             <div style="padding:24px;">
+                {{-- Tampilkan error validasi form tambah --}}
+                @if($errors->store->any())
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px;">
+                    <ul style="margin:0; padding-left:16px; color:#dc2626; font-size:12px; font-weight:500;">
+                        @foreach($errors->store->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
                 <div class="form-group">
                     <label class="form-label">Nama Lengkap</label>
-                    <input type="text" name="name" class="form-input" placeholder="Contoh: Budi Santoso" required>
+                    <input type="text" name="name" value="{{ old('name') }}" class="form-input" placeholder="Contoh: Budi Santoso" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Email <span class="form-label-sub">— digunakan untuk login</span></label>
-                    <input type="email" name="email" class="form-input" placeholder="Contoh: budi@kedaikopi.com" required>
+                    <input type="email" name="email" value="{{ old('email') }}" class="form-input" placeholder="Contoh: budi@kedaikopi.com" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Role</label>
                     <select name="role" class="form-select" required>
-                        <option value="barista">Barista</option>
-                        <option value="admin">Admin</option>
+                        <option value="barista" {{ old('role') === 'barista' ? 'selected' : '' }}>Barista</option>
+                        <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -149,6 +159,16 @@
             @csrf
             @method('PUT')
             <div style="padding:24px;">
+                {{-- Tampilkan error validasi form edit --}}
+                @if($errors->update->any())
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px;">
+                    <ul style="margin:0; padding-left:16px; color:#dc2626; font-size:12px; font-weight:500;">
+                        @foreach($errors->update->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
                 <div class="form-group">
                     <label class="form-label">Nama Lengkap</label>
                     <input type="text" id="editNama" name="name" class="form-input" required>
@@ -190,9 +210,12 @@
         if (e.target === this) tutupModalEdit();
     });
 
+    // Route template untuk update — placeholder ':id' diganti di JS
+    var routeUpdateTemplate = '{{ route('users.update', ':id') }}';
+
     function bukaModalEdit(id, nama, email) {
-        // Set action form sesuai ID user
-        document.getElementById('formEditUser').action = '/users/' + id;
+        // Set action form menggunakan Laravel route (bukan hardcoded URL)
+        document.getElementById('formEditUser').action = routeUpdateTemplate.replace(':id', id);
 
         // Isi field dengan data user yang ada
         document.getElementById('editNama').value  = nama;
@@ -209,5 +232,18 @@
     function tutupModalEdit() {
         document.getElementById('modalEditUser').style.display = 'none';
     }
+
+    // Auto-buka modal Tambah jika ada error validasi dari store
+    @if($errors->store->any())
+        document.getElementById('modalTambahUser').style.display = 'flex';
+    @endif
+
+    // Auto-buka modal Edit jika ada error validasi dari update
+    @if($errors->update->any())
+        var editId    = '{{ session('edit_user_id') }}';
+        var editNama  = '{{ session('edit_user_name') }}';
+        var editEmail = '{{ session('edit_user_email') }}';
+        if (editId) bukaModalEdit(editId, editNama, editEmail);
+    @endif
 </script>
 @endpush

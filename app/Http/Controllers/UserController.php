@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -24,7 +25,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
@@ -34,6 +35,12 @@ class UserController extends Controller
             'password.min'        => 'Password minimal 6 karakter.',
             'password.confirmed'  => 'Konfirmasi password tidak cocok.',
         ]);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator, 'store')
+                ->withInput();
+        }
 
         User::create([
             'name'     => $request->name,
@@ -50,7 +57,7 @@ class UserController extends Controller
      * Mengupdate data user.
      * Akun dengan role 'admin' tidak dapat diubah.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $user = User::findOrFail($id);
 
@@ -75,7 +82,17 @@ class UserController extends Controller
             $rules['password'] = 'string|min:6|confirmed';
         }
 
-        $request->validate($rules, $messages);
+        // Jalankan validasi — jika gagal, simpan info user ke session agar modal bisa re-open
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator, 'update')
+                ->withInput()
+                ->with('edit_user_id',    $id)
+                ->with('edit_user_name',  $user->name)
+                ->with('edit_user_email', $user->email);
+        }
 
         $user->name  = $request->name;
         $user->email = $request->email;
@@ -94,7 +111,7 @@ class UserController extends Controller
     /**
      * Menghapus user (tidak bisa hapus diri sendiri)
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $user = User::findOrFail($id);
 

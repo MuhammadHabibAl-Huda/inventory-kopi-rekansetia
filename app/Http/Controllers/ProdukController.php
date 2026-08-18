@@ -44,7 +44,7 @@ class ProdukController extends Controller
     /**
      * Menghapus produk (resep ikut terhapus via cascade)
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $produk = Produk::findOrFail($id);
         $namaProduk = $produk->nama_produk;
@@ -57,7 +57,7 @@ class ProdukController extends Controller
     /**
      * Menambahkan bahan baku ke resep sebuah produk
      */
-    public function tambahResep(Request $request, $produkId)
+    public function tambahResep(Request $request, int $produkId)
     {
         $request->validate([
             'bahan_baku_id'      => 'required|exists:bahan_bakus,id',
@@ -88,7 +88,7 @@ class ProdukController extends Controller
     /**
      * Mengupdate jumlah bahan yang dibutuhkan di resep
      */
-    public function updateResep(Request $request, $resepId)
+    public function updateResep(Request $request, int $resepId)
     {
         $request->validate([
             'jumlah_dibutuhkan' => 'required|numeric|min:0.1',
@@ -106,7 +106,7 @@ class ProdukController extends Controller
     /**
      * Menghapus satu bahan dari resep produk
      */
-    public function hapusResep($resepId)
+    public function hapusResep(int $resepId)
     {
         $resep = Resep::findOrFail($resepId);
         $resep->delete();
