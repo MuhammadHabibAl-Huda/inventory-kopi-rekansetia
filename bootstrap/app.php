@@ -20,6 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.only' => \App\Http\Middleware\AdminOnly::class,
         ]);
+
+        // Exclude API webhook dari CSRF verification
+        // agar bisa dihit dari POS / Postman tanpa CSRF token
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
+
+        // Tambahkan CORS headers untuk semua response API
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
