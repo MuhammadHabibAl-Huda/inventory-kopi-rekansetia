@@ -51,6 +51,12 @@ class BahanBakuController extends Controller
             'keterangan'    => 'Restock Supplier — ' . $request->supplier
         ]);
 
+        // Jika ada parameter redirect_to (misal dari Quick Restock di Dashboard), kembalikan ke sana
+        $redirectTo = $request->input('redirect_to');
+        if ($redirectTo === 'dashboard') {
+            return redirect()->route('dashboard')->with('success', 'Restock berhasil! Stok ' . $bahan->nama_bahan . ' telah ditambah sebesar ' . $request->jumlah_masuk . ' ' . $bahan->satuan . '.');
+        }
+
         return redirect()->route('bahan-baku.index')->with('success', 'Stok bahan baku ' . $bahan->nama_bahan . ' berhasil ditambah!');
     }
 
