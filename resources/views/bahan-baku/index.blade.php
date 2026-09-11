@@ -4,52 +4,58 @@
 @section('page_subtitle', 'Input restock supplier & catat penyusutan bahan baku')
 
 @section('content')
-@if(Auth::user()->isAdmin())
-<!-- BAGIAN A: TOMBOL BUKA MODAL (Admin Only) -->
-<div style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
-    <button type="button" onclick="document.getElementById('modalTambahBahan').style.display='flex'" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; background: linear-gradient(135deg, #b45309, #d97706); color: #fff; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Tambah Jenis Bahan Baku
-    </button>
-</div>
 
-<!-- FORM RESTOCK (Admin Only) -->
-<div class="form-card" style="margin-bottom: 24px;">
-    <div class="form-card-header">
-        <span class="header-icon green">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
+<!-- GRID DUA KOLOM: FORM RESTOCK + FORM PENYUSUTAN -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-bottom: 24px;">
+
+<!-- KOLOM KIRI: TOMBOL + FORM RESTOCK (Admin Only) -->
+@if(Auth::user()->isAdmin())
+<div style="display: flex; flex-direction: column; gap: 12px;">
+    <!-- TOMBOL BUKA MODAL -->
+    <div style="display: flex; justify-content: flex-start;">
+        <button type="button" onclick="document.getElementById('modalTambahBahan').style.display='flex'" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; background: linear-gradient(135deg, #b45309, #d97706); color: #fff; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-        </span>
-        <h3>Form Input Bahan Baku Masuk</h3>
+            Tambah Jenis Bahan Baku
+        </button>
     </div>
-    <form action="{{ route('bahan-baku.restock') }}" method="POST" class="form-body">
-        @csrf
-        <div class="form-group">
-            <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— pilih barang aktif yang akan di-restock</span></label>
-            <select name="bahan_id" required class="form-select">
-                <option value="">-- Pilih Barang --</option>
-                @foreach($bahanAktif as $bahan)
-                <option value="{{ $bahan->id }}">{{ $bahan->nama_bahan }} ({{ $bahan->satuan }})</option>
-                @endforeach
-            </select>
+    <!-- FORM RESTOCK -->
+    <div class="form-card">
+        <div class="form-card-header">
+            <span class="header-icon green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+            </span>
+            <h3>Form Input Bahan Baku Masuk</h3>
         </div>
-        <div class="form-group">
-            <label class="form-label">Jumlah Stok Tambahan <span class="form-label-sub">— masukkan jumlah dari supplier</span></label>
-            {{-- Ditambahkan step="any" dan min="0.01" agar bisa menerima koma --}}
-            <input type="number" step="any" name="jumlah_masuk" min="0.01" required placeholder="Contoh: 500.5" class="form-input">
-        </div>
-        <div class="form-group">
-            <label class="form-label">Nama Supplier <span class="form-label-sub">— nama penyuplai / tempat belanja</span></label>
-            <input type="text" name="supplier" required placeholder="Contoh: Toko Kopi Sumber Jaya" class="form-input">
-        </div>
-        <button type="submit" class="btn-primary">Tambah ke Gudang</button>
-    </form>
+        <form action="{{ route('bahan-baku.restock') }}" method="POST" class="form-body">
+            @csrf
+            <div class="form-group">
+                <label class="form-label">Pilih Bahan Baku <span class="form-label-sub">— pilih barang aktif yang akan di-restock</span></label>
+                <select name="bahan_id" required class="form-select">
+                    <option value="">-- Pilih Barang --</option>
+                    @foreach($bahanAktif as $bahan)
+                    <option value="{{ $bahan->id }}">{{ $bahan->nama_bahan }} ({{ $bahan->satuan }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Jumlah Stok Tambahan <span class="form-label-sub">— masukkan jumlah dari supplier</span></label>
+                {{-- Ditambahkan step="any" dan min="0.01" agar bisa menerima koma --}}
+                <input type="number" step="any" name="jumlah_masuk" min="0.01" required placeholder="Contoh: 500.5" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Supplier <span class="form-label-sub">— nama penyuplai / tempat belanja</span></label>
+                <input type="text" name="supplier" required placeholder="Contoh: Toko Kopi Sumber Jaya" class="form-input">
+            </div>
+            <button type="submit" class="btn-primary">Tambah ke Gudang</button>
+        </form>
+    </div>
 </div>
 @endif
 
@@ -117,6 +123,8 @@
         </form>
     </div>
 </div>
+
+</div>{{-- END GRID --}}
 
 <!-- BAGIAN B: MODAL TAMBAH BAHAN BARU (Admin Only) -->
 <div id="modalTambahBahan" style="display:none; position:fixed; inset:0; z-index:999; align-items:center; justify-content:center; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);">
